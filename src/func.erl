@@ -169,8 +169,66 @@ powerset([]) ->
   [[]].
 
 test_powerset() ->
-  io:format("~p~n", [powerset([1,2,3,4])]),
+  io:format("~p~n", [powerset([1, 2, 3, 4])]),
   io:format("~p~n", [powerset([])]).
+
+%%管道操作
+pipe(Value, [Op]) ->
+  Op(Value);
+pipe(Value, [Op | Ops]) ->
+  pipe(Op(Value), Ops).
+
+
+test_pipe()
+  ->
+  io:format("~p~n", [pipe([1, 2, 3, 4], [fun powerset/1, fun len_tail/1, fun(It) -> It * 2 end])]).
+
+%%foldl
+foldl(_, Acc, []) -> Acc;
+foldl(Func, Acc, [Head | Tail]) ->
+  foldl(Func, Func(Acc, Head), Tail).
+
+test_foldl() ->
+  io:format("~p~n", [foldl(fun(Acc, It) -> Acc rem It + It end, 1, [1, 2, 3, 4])]).
+
+
+%%foldr
+foldr(_, Acc, []) -> Acc;
+foldr(Func, Acc, [Head | Tail]) ->
+  Func(Head, foldr(Func, Acc, Tail)).
+
+test_foldr() ->
+  io:format("~p~n", [foldr(fun(Acc, It) -> Acc rem It + It end, 1, [1, 2, 3, 4])]).
+
+
+%% monad
+%%-type the_maybe(A) :: {just, A} | nothing.
+bind(nothing, _) -> nothing;
+bind({just, A}, Func) ->
+  Func(A).
+
+safe_div(_, 0) -> nothing;
+safe_div(A, B) -> {just, A / B}.
+
+test_maybe() ->
+  Result = bind(safe_div(10, 2), fun(X) -> safe_div(X, 5) end),
+  io:format("~p~n", [Result]).
+
+
+%%并行map
+
+pmap(Func, List)->
+  Parent = self(),
+  Pids = [spawn(fun()-> Parent ! {self(), Func(X)} end) || X <- List],
+  [ receive
+      {_, Result} -> Result
+    end || _ <- Pids].
+
+
+test_pmap()->
+  io:format("task start~n"),
+  io:format("~p~n", [pmap(fun(It)-> timer:sleep(1000), It * It end, [1,2,3,4])]).
+
 
 
 
