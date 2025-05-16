@@ -222,6 +222,8 @@ pmap(Func, List)->
   Pids = [spawn(fun()-> Parent ! {self(), Func(X)} end) || X <- List],
   [ receive
       {_, Result} -> Result
+    after 500 ->
+      timeout
     end || _ <- Pids].
 
 
